@@ -4,7 +4,7 @@ Movie recommendation model project made as part of the Accelerated Introduction 
 
 ## Project Overview
 
-A `Flask` webapp with that leverages a trained collaborative-filtering model implemented using `scikit-suprise` package with the using of the [MovieLens 100K](https://grouplens.org/datasets/movielens/) dataset in order to make movie recommendations. (Still in development!)
+A `Flask` webapp with that utilizes a trained collaborative-filtering model, implemented with the `sckikit-surprise` package, and the [MovieLens 100K](https://grouplens.org/datasets/movielens/) dataset in order to make movie recommendations. (Still in development!)
 
 ## Loading the Model
 
