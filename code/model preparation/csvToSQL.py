@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import pandas as pd
 
 #SCRIPT THAT CONVERTS CSV'S TO MYSQL TABLES
-
 load_dotenv()
 
 # Database connection details

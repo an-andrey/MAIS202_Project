@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .movie-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        justify-items: center;
+    }
+
+    .movie-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        max-width: 300px;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    .movie-card:hover {
+        transform: scale(1.05);
+    }
+
+    .movie-card img {
+        width: 100%;
+        height: auto;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .movie-info {
+        padding: 15px;
+    }
+
+    .movie-title {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #333;
+    }
+
+    .movie-year {
+        color: #777;
+        font-size: 0.9em;
+    }
+
+    .movie-description {
+        color: #555;
+        font-size: 0.9em;
+        margin-top: 10px;
+        line-height: 1.4em;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+        .movie-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .movie-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Star rating styling */
+    /* Ratings widget */
+    .rate {
+        display: inline-block;
+        border: 0;
+    }
+    /* Hide radio */
+    .rate > input {
+        display: none;
+    }
+    /* Order correctly by floating highest to the right */
+    .rate > label {
+        float: right;
+    }
+    /* The star of the show */
+    .rate > label:before {
+        display: inline-block;
+        font-size: 2rem;
+        padding: .3rem .2rem;
+        margin: 0;
+        cursor: pointer;
+        font-family: FontAwesome;
+        content: "\f005 "; /* full star */
+    }
+
+    /* Half star trick */
+    .rate .half:before {
+        content: "\f089 "; /* half star no outline */
+        position: absolute;
+        padding-right: 0;
+    }
+    /* Click + hover color */
+    input:checked ~ label, /* color current and previous stars on checked */
+    label:hover, label:hover ~ label { color: #f1ce09;  } /* color previous stars on hover */
+
+    /* Hover highlights */
+    input:checked + label:hover, input:checked ~ label:hover, /* highlight current and previous stars */
+    input:checked ~ label:hover ~ label, /* highlight previous selected stars for new rating */
+    label:hover ~ input:checked ~ label /* highlight previous selected stars */ { color: #fdfb6c;  } 
+
+</style>
+
+<div class="movie-container">
+    {% for movie in movies %}
+    {% if movie.img != "None" %}
+        <div class="movie-card">
+            <img src="{{ movie.img }}" alt="Poster of {{ movie.title }}">
+            <div class="movie-info">
+                <div class="movie-title">{{ movie.title }} <span class="movie-year">({{ movie.release_year }})</span></div>
+                {% if movie.description != "None" %}
+                <div class="movie-description">{{ movie.description }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 5-star rating with half stars -->
+            <!-- Form needs an action URL and correct method -->
+            <form action="/rate_movie" method="POST" class="rating-form">
+                <fieldset class="rate">
+                    <input type="radio" id="rating10-{{movie.movieId}}" name="rating" value="5" {% if movie.rating == 5 %} checked {% endif %}/>
+                    <label for="rating10-{{movie.movieId}}" title="5 stars"></label>
+                    
+                    <input type="radio" id="rating9-{{movie.movieId}}" name="rating" value="4.5" {% if movie.rating == 4.5 %} checked {% endif %}/>
+                    <label class="half" for="rating9-{{movie.movieId}}" title="4 1/2 stars"></label>
+                    
+                    <input type="radio" id="rating8-{{movie.movieId}}" name="rating" value="4" {% if movie.rating == 4 %} checked {% endif %}/>
+                    <label for="rating8-{{movie.movieId}}" title="4 stars"></label>
+                    
+                    <input type="radio" id="rating7-{{movie.movieId}}" name="rating" value="3.5" {% if movie.rating == 3.5 %} checked {% endif %}/>
+                    <label class="half" for="rating7-{{movie.movieId}}" title="3 1/2 stars"></label>
+                    
+                    <input type="radio" id="rating6-{{movie.movieId}}" name="rating" value="3" {% if movie.rating == 3 %} checked {% endif %}/>
+                    <label for="rating6-{{movie.movieId}}" title="3 stars"></label>
+                    
+                    <input type="radio" id="rating5-{{movie.movieId}}" name="rating" value="2.5" {% if movie.rating == 2.5 %} checked {% endif %}/>
+                    <label class="half" for="rating5-{{movie.movieId}}" title="2 1/2 stars"></label>
+                    
+                    <input type="radio" id="rating4-{{movie.movieId}}" name="rating" value="2" {% if movie.rating == 2 %} checked {% endif %}/>
+                    <label for="rating4-{{movie.movieId}}" title="2 stars"></label>
+                    
+                    <input type="radio" id="rating3-{{movie.movieId}}" name="rating" value="1.5" {% if movie.rating == 1.5 %} checked {% endif %}/>
+                    <label class="half" for="rating3-{{movie.movieId}}" title="1 1/2 stars"></label>
+                    
+                    <input type="radio" id="rating2-{{movie.movieId}}" name="rating" value="1" {% if movie.rating == 1 %} checked {% endif %}/>
+                    <label for="rating2-{{movie.movieId}}" title="1 star"></label>
+                    
+                    <input type="radio" id="rating1-{{movie.movieId}}" name="rating" value="0.5" {% if movie.rating == 0.5 %} checked {% endif %}/>
+                    <label class="half" for="rating1-{{movie.movieId}}" title="1/2 star"></label>
+                </fieldset>
+                <input type="hidden" name="movieId" value="{{ movie.movieId }}">
+            </form>            
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('.rating-form');
+        forms.forEach(form => {
+            const radios = form.querySelectorAll('input[type="radio"]');
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    form.submit();
+                });
+            });
+        });
+    });
+</script>
+
+{% endblock %}
