@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, redirect, url_for
+from flask import Flask, render_template, flash, redirect, url_for, request
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField
 from wtforms.validators import DataRequired
@@ -7,10 +7,23 @@ from dotenv import load_dotenv
 import os
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from scripts.get_overview_tmdb import get_movie_description
+from scripts.get_poster_tmdb import get_movie_poster
+from scripts.get_recommendations import get_top_n_recommendations, get_unwatched_movies
+from sqlalchemy.orm import sessionmaker
+import pandas as pd
+import pickle 
 
 load_dotenv()
 
 app = Flask(__name__)
+
+#using joblib
+#model = joblib.load("code/flask webapp/scripts/svd_model.joblib")
+
+#using pickle
+with open("code/flask webapp/models/svd_model.pkl", "rb") as f:
+    model = pickle.load(f)
 
 # Secret Key Configuration
 app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY", "FLASK_SECRET_KEY")
@@ -20,7 +33,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URL")
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "connect_args": {
         'ssl': {
-            'ca': 'ca.pem'  # Replace 'ca.pem' with the actual path to your CA cert file
+            'ca': 'code/flask webapp/ca.pem'  
         }
     }
 }
@@ -37,17 +50,37 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return Users.query.get(int(user_id))
 
-#Creating a db model
+################
+#CLASSES FOR DB#
+################
+class Ratings(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    userId = db.Column(db.BigInteger, nullable=False)
+    movieId = db.Column(db.BigInteger, nullable=False)
+    rating = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f"<Ratings(id={self.id}, userId={self.userId}, movieId={self.movieId}, rating={self.rating}>"
+
 class Users(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(200), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
 
-    #this is if we return an instance of the class
     def __repr__(self):
         return "<Name %r>" %self.username
 
-# Create a Form Class
+class Movies(db.Model):
+    __tablename__ = "movies"
+
+    movieId = db.Column(db.BigInteger, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    genres = db.Column(db.String(200), nullable=False)
+    release_year = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"<Movies(movieId={self.movieId}, title={self.title}, genres={self.genres}>"
+    
 class RegisterForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
     password = PasswordField("Password",validators=[DataRequired()])
@@ -57,11 +90,58 @@ class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired()])
     password = PasswordField("Password",validators=[DataRequired()])
     submit = SubmitField("Log-in")
-    
 
 @app.route("/")
 def home():
-    return "Hello World"
+    return render_template("index.html")
+
+@app.route("/movies")
+@login_required
+def movies():
+    search = request.args.get("search", "False")
+    moviename = request.args.get("moviename", "")
+    movies =[]
+    userId = current_user.id
+    if search == "True":
+        movies = Movies.query.filter(Movies.title.like(f"%{moviename}%")).all()
+    elif search == "False":
+        
+        movie_ids = get_top_n_recommendations(db.engine,model,userId,10)
+        movies = Movies.query.filter(Movies.movieId.in_([movie[0] for movie in movie_ids])).all()
+        
+    # Convert the movies to a list of dictionaries
+    movies_list = []
+    for movie in movies:
+
+        rating = Ratings.query.filter_by(userId=userId, movieId=movie.movieId).first()
+        current_rating = rating.rating if rating else None
+
+        movie_dict = {
+            'movieId':movie.movieId,
+            'title': movie.title,
+            'release_year': movie.release_year,
+            'img' : get_movie_poster(movie.title, movie.release_year),
+            'description' : get_movie_description(movie.title, movie.release_year),
+            'rating': current_rating
+        }
+        movies_list.append(movie_dict)
+     
+    
+    return render_template("movie.html", movies=movies_list)
+
+@app.route("/search_movie", methods=["GET"])
+@login_required
+def search_movie():
+    word = request.args.get("searchbar")
+    return redirect(url_for("movies",search="True", moviename=word) )
+
+@app.route("/add_review",methods=["GET","POST"])
+def rate_movie():
+    rating = int(request.form.get("rating"))
+    movieId = request.form.get("movieId")
+    print(rating,movieId)
+
+    return redirect(url_for("movies"))
 
 @app.route("/db")
 def get_db():
@@ -124,19 +204,11 @@ def register():
             new_user = Users(username=form.username.data, password=form.password.data)
             db.session.add(new_user)
             db.session.commit()
-            flash("User Added Successfully", "success") 
-            # Optionally redirect to the home page or another page
-            return render_template("register.html", username=form.username.data, form=form, our_users=Users.query.all())  # Redirect after successful registration
+            login_user(new_user)
+            return redirect(url_for("dashboard", user=new_user))
 
     # Render the form with the current data if the user submits an invalid form
     return render_template("register.html", form=form, our_users=Users.query.all())
-@app.route("/hello/<name>")
-def hello(name):
-    return render_template("hello_there.html", name=name)
-
-@app.route("/predict/<int:userId>/<int:topAmount>")
-def predict(userId, topAmount):
-    return f"Predicting the top {topAmount} movies for {userId}"
 
 if __name__ == "__main__":
     app.run(debug=True)
