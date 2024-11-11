@@ -5,6 +5,7 @@ import numpy
 import os
 import time
 
+#script that gets the top n recommendations for a user
 def get_unwatched_movies(engine,userId):
     start = time.time()
     with engine.connect() as connection:

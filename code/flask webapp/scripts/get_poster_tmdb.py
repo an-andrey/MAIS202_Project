@@ -2,6 +2,7 @@ import requests
 import os 
 from dotenv import load_dotenv
 
+#script that gets the movie poster from TMDb
 load_dotenv()
 
 # TMDb API configuration
