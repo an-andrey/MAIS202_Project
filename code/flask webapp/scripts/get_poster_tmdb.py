@@ -26,19 +26,18 @@ def get_movie_poster(movie_title, release_year):
         return "None"
     
     response_json = response.json()
-
-
     # Check if 'results' key exists
-    if 'results' in response_json and response_json['results'] and response_json['results'][0]["release_date"][:4] == str(release_year):      
+    if 'results' in response_json and response_json['results'] and abs(int(response_json['results'][0]["release_date"][:4]) - release_year) <= 1:    
         # Display the list of movies found
         movies = response_json['results']
         url = movies[0]["backdrop_path"]
-        if url != "None":
+
+        if url != None:
             url = f"{image_base_url}{movies[0]["backdrop_path"]}"
-        
+        else:
+            return "None"
         return url
     
     else:
         print("No results found")
         return "None"
-    

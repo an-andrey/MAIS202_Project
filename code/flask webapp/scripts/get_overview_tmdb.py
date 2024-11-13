@@ -1,7 +1,6 @@
 import requests
 import os 
 from dotenv import load_dotenv
-
 #script that gets the description of a movie from TMDb
 load_dotenv()
 
@@ -27,7 +26,7 @@ def get_movie_description(movie_title, release_year):
     response_json = response.json()
     
     # Check if 'results' key exists
-    if 'results' in response_json and response_json['results'] and response_json['results'][0]["release_date"][:4] == str(release_year):
+    if 'results' in response_json and response_json['results'] and abs(int(response_json['results'][0]["release_date"][:4]) - release_year) <= 1:
         # Display the list of movies found
         movies = response_json['results']
         

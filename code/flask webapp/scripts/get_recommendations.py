@@ -1,13 +1,7 @@
 import pandas as pd
-import joblib
-import surprise 
-import numpy
-import os
-import time
 
 #script that gets the top n recommendations for a user
 def get_unwatched_movies(engine,userId):
-    start = time.time()
     with engine.connect() as connection:
         movies_df = pd.read_sql("SELECT * FROM movies", connection)
         user_ratings_df = pd.read_sql(f"SELECT * FROM ratings WHERE userId = {userId}", connection)
@@ -21,11 +15,9 @@ def get_unwatched_movies(engine,userId):
     # Select only the 'movieId' column
     unrated_movies_df = unrated_movies_df[['movieId']]
 
-    print(time.time()-start)
     return unrated_movies_df
 
 def get_top_n_recommendations(engine,model,userId,n):
-    start = time.time()
     unwatched_movies = get_unwatched_movies(engine,userId)
     top_n_movies = [[0,0] for _ in range(n)]
 
@@ -45,6 +37,5 @@ def get_top_n_recommendations(engine,model,userId,n):
 
                 top_n_movies[i-1][0] = movieId
                 top_n_movies[i-1][1] = prediction.est
-
-    print(time.time()-start)    
+  
     return top_n_movies 

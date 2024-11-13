@@ -1,18 +1,25 @@
 from flask import Flask, render_template, flash, redirect, url_for, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField
+from wtforms import StringField, SubmitField, PasswordField, FloatField
 from wtforms.validators import DataRequired
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import scoped_session, sessionmaker
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from scripts.get_overview_tmdb import get_movie_description
 from scripts.get_poster_tmdb import get_movie_poster
 from scripts.get_recommendations import get_top_n_recommendations, get_unwatched_movies
+from scripts.get_movies_omdb import get_movie_info
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
-import pickle 
+import pickle
+from scripts.re_train import async_retrain_svd_model
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import time
+import aiohttp
 
 load_dotenv()
 
@@ -41,6 +48,11 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
 
+# Set up the session factory
+with app.app_context():
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db.engine)
+    Session = scoped_session(SessionLocal)
+
 #Flask_login 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -48,7 +60,25 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Users.query.get(int(user_id))
+    session = Session()
+    try:
+        user = session.query(Users).filter(Users.id == int(user_id)).first()
+        return user
+    finally:
+        session.close()
+
+####################
+# MODEL RETRAINING #
+####################
+
+def get_all_ratings():
+    query = text("SELECT userId, movieId, rating FROM ratings")
+    with db.engine.connect() as connection:
+        result = connection.execute(query)
+        ratings = result.fetchall()
+    ratings_df = pd.DataFrame(ratings, columns=["userId", "movieId", "rating"])
+    print("got all the ratings")
+    return ratings_df
 
 ################
 #CLASSES FOR DB#
@@ -91,43 +121,75 @@ class LoginForm(FlaskForm):
     password = PasswordField("Password",validators=[DataRequired()])
     submit = SubmitField("Log-in")
 
+##########
+# ROUTES #
+##########
 @app.route("/")
 def home():
     return render_template("index.html")
 
 @app.route("/movies")
 @login_required
-def movies():
+async def movies():
+    start = time.time()
     search = request.args.get("search", "False")
     moviename = request.args.get("moviename", "")
     movies =[]
     userId = current_user.id
-    if search == "True":
-        movies = Movies.query.filter(Movies.title.like(f"%{moviename}%")).all()
-    elif search == "False":
-        
-        movie_ids = get_top_n_recommendations(db.engine,model,userId,10)
-        movies = Movies.query.filter(Movies.movieId.in_([movie[0] for movie in movie_ids])).all()
-        
-    # Convert the movies to a list of dictionaries
-    movies_list = []
-    for movie in movies:
+    session = Session()
+    try:
+        if search == "True":
+            movies = session.query(Movies)\
+                .filter(Movies.title.like(f"%{moviename}%"))\
+                .order_by(Movies.release_year.desc())\
+                .limit(10).all()
+            movie_ids = [movie.movieId for movie in movies]
+        else:
+            movie_ids_with_scores = get_top_n_recommendations(db.engine, model, userId, 10)
+            movie_ids = [movie[0] for movie in movie_ids_with_scores]
+            movies = session.query(Movies)\
+                .filter(Movies.movieId.in_(movie_ids))\
+                .order_by(Movies.release_year.desc())\
+                .limit(10).all()
+            
+        # Fetch all ratings in a single query
+        ratings = session.query(Ratings).filter(Ratings.userId == userId, Ratings.movieId.in_(movie_ids)).all()
+        ratings_dict = {rating.movieId: rating.rating for rating in ratings}
 
-        rating = Ratings.query.filter_by(userId=userId, movieId=movie.movieId).first()
-        current_rating = rating.rating if rating else None
+        # Fetch movie info asynchronously
+        async with aiohttp.ClientSession() as aio_session:
+            tasks = [fetch_movie_info(aio_session, movie) for movie in movies]
+            movie_infos = await asyncio.gather(*tasks)
 
-        movie_dict = {
-            'movieId':movie.movieId,
-            'title': movie.title,
-            'release_year': movie.release_year,
-            'img' : get_movie_poster(movie.title, movie.release_year),
-            'description' : get_movie_description(movie.title, movie.release_year),
-            'rating': current_rating
-        }
-        movies_list.append(movie_dict)
-     
-    
+        # Convert the movies to a list of dictionaries
+        movies_list = []
+        for movie, (poster, description) in zip(movies, movie_infos):
+            current_rating = ratings_dict.get(movie.movieId, None)
+
+            movie_dict = {
+                'movieId':movie.movieId,
+                'title': movie.title,
+                'release_year': movie.release_year,
+                'img' : poster,
+                'description' : description,
+                'rating': current_rating,
+                'search': search,
+                'moviename': moviename
+            }
+
+            movies_list.append(movie_dict)
+
+        
+    finally:
+        session.close()
+    print(f"Getting movie info time: {time.time() - start}")    
     return render_template("movie.html", movies=movies_list)
+
+#getting all posters/descriptions asynchronously
+async def fetch_movie_info(aio_session, movie):
+    # Ensure this function is asynchronous and returns a coroutine
+    poster, description = await get_movie_info(movie.title, movie.release_year) 
+    return poster, description
 
 @app.route("/search_movie", methods=["GET"])
 @login_required
@@ -135,13 +197,43 @@ def search_movie():
     word = request.args.get("searchbar")
     return redirect(url_for("movies",search="True", moviename=word) )
 
-@app.route("/add_review",methods=["GET","POST"])
-def rate_movie():
-    rating = int(request.form.get("rating"))
+@app.route("/add_rating", methods=["GET", "POST"])
+@login_required
+def add_rating():
+    rating = float(request.form.get("rating"))
     movieId = request.form.get("movieId")
-    print(rating,movieId)
+    search = request.form.get("search")
+    moviename = request.form.get("moviename")
 
-    return redirect(url_for("movies"))
+    session = Session()
+    try:
+        # Check if the user has already rated this movie
+        existing_rating = session.query(Ratings).filter_by(userId=current_user.id, movieId=movieId).first()
+
+        if existing_rating:
+            # Update the existing rating
+            existing_rating.rating = rating
+            session.commit()
+            print("Rating updated successfully")
+        else:
+            # Add the new review to the database
+            new_rating = Ratings(userId=current_user.id, movieId=movieId, rating=rating)
+            session.add(new_rating)
+            session.commit()
+            print("Rating added successfully")
+    finally:
+        session.close()
+   
+    ratings_df = get_all_ratings()
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # No event loop in the current thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    
+    loop.run_in_executor(None, asyncio.run, async_retrain_svd_model(ratings_df))
+    
+    return redirect(url_for("movies", search=search, moviename=moviename))
 
 @app.route("/db")
 def get_db():
