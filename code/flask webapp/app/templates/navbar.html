@@ -1,7 +1,7 @@
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand text-danger" href="{{ url_for('home')}}">What2Watch</a>
+      <a class="navbar-brand text-danger" href="{{ url_for('main.home')}}">What2Watch</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -9,23 +9,23 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 ">
           {% if current_user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('movies', query='recommend') }}">Movies</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('movie.movies', query='recommend') }}">Movies</a>
           </li>
 
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('movies', query='popular') }}">Trending</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('movie.movies', query='popular') }}">Trending</a>
           </li>
           
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('main.dashboard') }}">Dashboard</a>
           </li>
           {% else %}
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('register') }}">Register</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('auth.register') }}">Register</a>
           </li>
           
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('login') }}">Log-in</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('auth.login') }}">Log-in</a>
           </li>
           {% endif %}
         </ul>

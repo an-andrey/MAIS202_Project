@@ -8,7 +8,7 @@ import time
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-def retrain_svd_model(ratings_df, model_path='code/flask webapp/models/svd_model.pkl', backup_dir='code/flask webapp/backups'):
+def retrain_svd_model(ratings_df, model_path='ml_model/svd_model.pkl', backup_dir='backups'):
     # Ensure the backup directory exists
     os.makedirs(backup_dir, exist_ok=True)
     

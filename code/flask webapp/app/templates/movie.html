@@ -120,8 +120,6 @@
                 {% endif %}
             </div>
 
-            <!-- 5-star rating with half stars -->
-            <!-- Form needs an action URL and correct method -->
             <form action="/add_rating" method="POST" class="rating-form">
                 <fieldset class="rate">
                     <input type="radio" id="rating10-{{movie.movieId}}" name="rating" value="5" {% if movie.rating == 5 %} checked {% endif %}/>
@@ -162,7 +160,7 @@
         {% endif %}
     {% endfor %}
 
-]<br><br>
+<br><br>
 </div>
 {% if query_info.query == "popular" %}
 <div class="d-flex justify-content-center my-5">
