@@ -1,3 +1,0 @@
-MovieLensFinal/ratings.csv filter=lfs diff=lfs merge=lfs -text
-MovieLensFinal/ratings_test.csv filter=lfs diff=lfs merge=lfs -text
-code/flask[[:space:]]webapp/models/* filter=lfs diff=lfs merge=lfs -text
