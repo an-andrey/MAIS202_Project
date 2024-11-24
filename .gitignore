@@ -7,3 +7,6 @@ code/flask\ webapp/scripts/__pycache__
 code/flask\ webapp/backups
 *.joblib
 knn_model.pkl
+*.pkl
+Movielens100k/
+MovieLensFinal/
