@@ -9,7 +9,11 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 ">
           {% if current_user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('movies') }}">Movies</a>
+            <a class="nav-link active" aria-current="page" href="{{ url_for('movies', query='recommend') }}">Movies</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{{ url_for('movies', query='popular') }}">Trending</a>
           </li>
           
           <li class="nav-item">

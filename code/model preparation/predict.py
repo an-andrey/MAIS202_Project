@@ -7,12 +7,10 @@ import pandas as pd
 # SCRIPT IN ORDER TO TEST THE MODEL'S ACCURACY 
 # MODEL NEEDS TO BE SAVED AS knn_model.pkl
 
-ratings = pd.read_csv("MovieLens32M/ratings.csv")
+test_data = pd.read_csv("MovieLensFinal/ratings_test.csv")
 
-model_path = 'knn_model.pkl'
-train_ratings, test_ratings = train_test_split(ratings, test_size=0.95, random_state=42)
-#only testing with 1.5 million data points
-test_ratings = test_ratings[0:1500000]
+model_path = 'code/flask webapp/models/svd_model.pkl'
+test_ratings = test_data.sample(frac=0.1, random_state=42)
 
 # Check if the model file exists in the Colab environment
 if os.path.exists(model_path):

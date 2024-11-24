@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        .loader {
+            font-size: 24px;
+            padding: 20px;
+            text-align: center;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .loader::after {
+            content: "...";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60%, 100% { content: "..."; }
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            fetch('/check_task_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.done) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        setTimeout(() => window.location.reload(), 2000);
+                    }
+                });
+        }
+    </script>
+</head>
+<body>
+    <div class="loader">Loading</div>
+</body>
+</html>

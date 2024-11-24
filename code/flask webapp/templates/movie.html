@@ -155,13 +155,27 @@
                     <label class="half" for="rating1-{{movie.movieId}}" title="1/2 star"></label>
                 </fieldset>
                 <input type="hidden" name="movieId" value="{{ movie.movieId }}">
-                <input type="hidden" name="search" value="{{ movie.search }}">
+                <input type="hidden" name="query" value="{{ query_info.query }}">
                 <input type="hidden" name="moviename" value="{{ movie.moviename }}">
             </form>            
         </div>
         {% endif %}
     {% endfor %}
+
+]<br><br>
 </div>
+{% if query_info.query == "popular" %}
+<div class="d-flex justify-content-center my-5">
+    <form action="/movies" method="GET" class="load-page-form">
+        <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm" 
+                name="p" 
+                value="{{ query_info.page_to_load }}">
+            Load More
+        </button>
+        <input type="hidden" name="query" value="{{ query_info.query }}">
+    </form>
+</div>
+{% endif %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

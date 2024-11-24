@@ -38,8 +38,3 @@ def retrain_svd_model(ratings_df, model_path='code/flask webapp/models/svd_model
     with open(model_path, 'wb') as f:
         pickle.dump(model, f)
     print(f"Model saved to {model_path}")
-
-async def async_retrain_svd_model(ratings_df, model_path='code/flask webapp/models/svd_model.pkl', backup_dir='code/flask webapp/backups'):
-    loop = asyncio.get_event_loop()
-    with ThreadPoolExecutor() as executor:
-        await loop.run_in_executor(executor, retrain_svd_model, ratings_df, model_path, backup_dir)
