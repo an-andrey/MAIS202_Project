@@ -4,3 +4,4 @@ code/flask\ webapp/ca.pem
 code/.venv
 code/flask\ webapp/__pycache__
 code/flask\ webapp/scripts/__pycache__
+code/flask\ webapp/backups
