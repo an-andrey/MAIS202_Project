@@ -5,3 +5,5 @@ code/.venv
 code/flask\ webapp/__pycache__
 code/flask\ webapp/scripts/__pycache__
 code/flask\ webapp/backups
+*.joblib
+knn_model.pkl
