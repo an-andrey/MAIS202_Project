@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required
 from app.forms.auth import LoginForm, RegisterForm
 from app.models.user import Users
 from app.extensions import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth = Blueprint('auth', __name__)
 
@@ -11,7 +12,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = Users.query.filter_by(username=form.username.data).first()
-        if user and user.password == form.password.data:
+        if user and check_password_hash(user.password, form.password.data):
             login_user(user)
             return redirect(url_for("main.dashboard"))
         flash("Invalid credentials")
@@ -35,8 +36,11 @@ def register():
             # Don't redirect; render the template again with the form and error message
             return render_template("register.html", form=form, our_users=Users.query.all())
         else:
-            # Create a new user
-            new_user = Users(username=form.username.data, password=form.password.data)
+            # Hash the password
+            hashed_password = generate_password_hash(form.password.data, method='sha256')
+
+            # Create a new user with the hashed password
+            new_user = Users(username=form.username.data, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
             login_user(new_user)

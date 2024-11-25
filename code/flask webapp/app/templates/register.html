@@ -37,14 +37,6 @@
         </form>
       </div>
     {% endif %}
-    <br> 
-    <br>
-    <h2>Registered Users</h2>
-    <ul>
-        {% for our_user in our_users %}
-            <li>{{ our_user.id }}. {{ our_user.username }} - {{ our_user.password }}</li>
-        {% endfor %}
-    </ul>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
